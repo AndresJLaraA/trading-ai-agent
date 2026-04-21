@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "_comment": "Configuración estática para Pixel Agents + Streamlit dashboard. La lógica operativa vive en core/config.py — este archivo es solo UI/visualización.",
+
+  "system": {
+    "symbols":   ["SPY", "NVDA", "TSLA"],
+    "intervals": ["5m", "15m", "4h"],
+    "timezone":  "UTC",
+    "refresh_ms": 5000
+  },
+
+  "state_file": "agents_state.json",
+
+  "state_animations": {
+    "idle":    "stand",
+    "running": "run",
+    "dancing": "dance"
+  },
+
+  "agents": {
+    "orb": {
+      "name":    "ORB",
+      "enabled": true,
+      "ui": {
+        "sprite": "warrior",
+        "color":  "yellow",
+        "label":  "Opening Range Breakout"
+      }
+    },
+    "vwap": {
+      "name":    "VWAP",
+      "enabled": true,
+      "ui": {
+        "sprite": "mage",
+        "color":  "blue",
+        "label":  "VWAP Reversion"
+      }
+    },
+    "momentum": {
+      "name":    "Momentum",
+      "enabled": true,
+      "ui": {
+        "sprite": "rogue",
+        "color":  "green",
+        "label":  "Momentum Scalping"
+      }
+    },
+    "smc": {
+      "name":    "SMC",
+      "enabled": true,
+      "ui": {
+        "sprite": "paladin",
+        "color":  "purple",
+        "label":  "Smart Money Concepts"
+      },
+      "phases": {
+        "london_open":      { "score": 0, "actionable": false },
+        "london_expansion": { "score": 3, "actionable": true  },
+        "ny_open":          { "score": 4, "actionable": true  }
+      }
+    },
+    "aggregator": {
+      "name":    "Aggregator",
+      "enabled": true,
+      "ui": {
+        "sprite": "oracle",
+        "color":  "white",
+        "label":  "Signal Aggregator"
+      }
+    }
+  },
+
+  "score_colors": {
+    "4": "#2ecc71",
+    "3": "#27ae60",
+    "2": "#f39c12",
+    "1": "#e67e22",
+    "0": "#95a5a6"
+  },
+
+  "direction_emoji": {
+    "BUY":   "🟢",
+    "SELL":  "🔴",
+    "WATCH": "👁️",
+    "null":  "⚪"
+  }
+}

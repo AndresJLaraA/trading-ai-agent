@@ -2,7 +2,9 @@ name: Trading Bot
 
 on:
   schedule:
-    # Lunes a viernes, 08:00–16:30 UTC (cubre London + NY)
+    # Lunes a viernes, 08:00–16:55 UTC (London Open → NY Close)
+    # */5 en minutos = cada 5min — mínimo soportado por GitHub
+    # Hora 16 cubre hasta 16:55 UTC, maximizando la ventana NY sin overflow
     - cron: "*/5 8-16 * * 1-5"
   workflow_dispatch:
 
@@ -11,27 +13,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # actions/checkout@v4 — versión estable actual (v4.2.2)
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # actions/setup-python@v5 — versión actual con soporte 3.12/3.13
+      # cache: 'pip' integrado — elimina el step separado de actions/cache@v3
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
-
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          python-version: "3.12"        # paridad con entorno local (3.12.13)
+          python-version-file: ""       # ignorar .python-version si existe
+          cache: "pip"                  # cache nativo — reduce ~60s a ~3s
+          cache-dependency-path: "requirements.txt"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run bot
+      # Ejecución del bot
+      - name: Run trading agents
         env:
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_TOKEN:   ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python main.py
+
+      # Artifact upload — siempre ejecuta aunque el bot falle
+      # retention-days: 1 — mínimo útil, reduce consumo de storage gratuito
+      - name: Upload bridge state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agents-state-${{ github.run_number }}
+          path: .vscode/pixel-agents/agents_state.json
+          retention-days: 1
+          if-no-files-found: ignore    # no falla si el bot no generó el archivo

@@ -1,5 +1,17 @@
+# Entorno y credenciales
 .env
 .venv/
-.DS_Store
+
+# Runtime del bridge — se regenera en cada ciclo
+.vscode/pixel-agents/agents_state.json
+grep "agents_state" .gitignore
+
+# Config estática del bridge — se commitea una sola vez
+!.vscode/pixel-agents/pixel_agents_config.json
+
+# Python
 __pycache__/
 *.pyc
+
+# Mac
+.DS_Store
