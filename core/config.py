@@ -17,7 +17,8 @@ CONFIG = {
     },
 
     "risk": {
-        "atr_mult":   1.5,
-        "tp_min_pct": 0.02,
+        "atr_mult": 1.5,
+        "min_rr": 1.2,
+        "vol_factor": 1.2,
     }
 }

@@ -20,6 +20,10 @@ bridge = BridgeWriter()
 
 def run():
     for symbol in CONFIG["symbols"]:
+
+        # 🔹 MTF: buffer por símbolo
+        mtf_buffer = {}
+
         for interval in CONFIG["intervals"]:
 
             # === 1. DATA ===
@@ -32,27 +36,26 @@ def run():
             df = compute_indicators(df, CONFIG["logic"])
 
             # === 3. STRATEGIES ===
-            s1 = orb_signal(df)      if CONFIG["strategies"]["orb"]["enabled"]                    else None
-            s2 = vwap_signal(df)     if CONFIG["strategies"]["vwap"]["enabled"]                   else None
-            s3 = momentum_signal(df) if CONFIG["strategies"]["momentum"]["enabled"]               else None
+            s1 = orb_signal(df) if CONFIG["strategies"]["orb"]["enabled"] else None
+            s2 = vwap_signal(df) if CONFIG["strategies"]["vwap"]["enabled"] else None
+            s3 = momentum_signal(df) if CONFIG["strategies"]["momentum"]["enabled"] else None
             s4 = smc_signal(df, CONFIG["logic"]) if CONFIG["strategies"].get("smc", {}).get("enabled") else None
 
             strategy_results = {
-                "orb":      s1,
-                "vwap":     s2,
+                "orb": s1,
+                "vwap": s2,
                 "momentum": s3,
-                "smc":      s4,
+                "smc": s4,
             }
 
-            # === 4. MARKET SNAPSHOT (siempre disponible) ===
+            # === 4. MARKET SNAPSHOT ===
             last_price = float(df["close"].iloc[-1])
-            timestamp  = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
 
             # === 5. AGGREGATION ===
             signals = [s for s in strategy_results.values() if s]
 
             if not signals:
-                # Bridge con todos idle — el dashboard muestra el estado real
                 bridge.write(
                     strategy_results=strategy_results,
                     aggregated=None,
@@ -77,24 +80,99 @@ def run():
                 )
                 continue
 
+            # 🔹 MTF: guardar info base
+            mtf_buffer[interval] = {
+                "best": best,
+                "df": df,
+                "strategy_results": strategy_results,
+                "price": last_price,
+                "timestamp": timestamp,
+            }
+
             # === 6. RISK ===
             risk = calculate_risk(df, best, CONFIG["risk"])
 
-            # === 7. BRIDGE (SIEMPRE, con el estado real del ciclo) ===
+            # 🔹 MTF: guardar riesgo
+            mtf_buffer[interval]["risk"] = risk
+
+            # === 7. BRIDGE (NO se toca) ===
             bridge.write(
                 strategy_results=strategy_results,
                 aggregated=best,
-                risk_output=risk,        # puede ser None si no pasó validación
+                risk_output=risk,
                 symbol=symbol,
                 interval=interval,
                 price=last_price,
                 timestamp=timestamp,
             )
 
-            # === 8. ALERT (solo si riesgo válido) ===
+            # 🔹 MTF: NO alertar aún
             if not risk:
                 logger.info("⚠️  %s %s — señal descartada por risk_agent", symbol, interval)
                 continue
+        
+        # 🔹 ================================
+        # 🔹 8. MULTI-TIMEFRAME JERARQUÍA
+        # 🔹 ================================
 
-            send_alert(symbol, interval, best, risk)
-            logger.info("📊 %s %s → %s | %s", symbol, interval, best["signal"], best["strategy"])
+        # Definir prioridad real de timeframes
+        TIMEFRAME_PRIORITY = {
+            "1m": 1,
+            "5m": 2,
+            "15m": 3,
+            "1h": 4,
+            "4h": 5,
+            "1d": 6,
+        }
+
+        valid_signals = [
+            (interval, data)
+            for interval, data in mtf_buffer.items()
+            if data.get("risk") and data.get("best")
+        ]
+
+        if not valid_signals:
+            continue
+
+        # Ordenar por jerarquía (mayor timeframe primero)
+        valid_signals.sort(
+            key=lambda x: TIMEFRAME_PRIORITY.get(x[0], 0),
+            reverse=True
+        )
+
+        # Seleccionar HTF (el más alto)
+        chosen_interval, chosen_data = valid_signals[0]
+        chosen_direction = chosen_data["best"]["signal"]
+
+        # Verificar si hay conflicto con LTF
+        conflicts = [
+            (interval, data)
+            for interval, data in valid_signals[1:]
+            if data["best"]["signal"] != chosen_direction
+        ]
+
+        if conflicts:
+            logger.info(
+                "⚠️ %s — conflicto MTF, usando HTF (%s)",
+                symbol,
+                chosen_interval
+            )
+
+        # 🔹 ================================
+        # 🔹 9. EJECUCIÓN FINAL
+        # 🔹 ================================
+
+        send_alert(
+            symbol,
+            chosen_interval,
+            chosen_data["best"],
+            chosen_data["risk"]
+        )
+
+        logger.info(
+            "📊 %s %s → %s | %s (HTF DOMINANTE)",
+            symbol,
+            chosen_interval,
+            chosen_data["best"]["signal"],
+            chosen_data["best"]["strategy"]
+        )        

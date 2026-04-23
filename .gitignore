@@ -4,9 +4,10 @@
 
 # Runtime del bridge — se regenera en cada ciclo
 .vscode/pixel-agents/agents_state.json
-grep "agents_state" .gitignore
 
 # Config estática del bridge — se commitea una sola vez
+.vscode/
+!.vscode/pixel-agents/
 !.vscode/pixel-agents/pixel_agents_config.json
 
 # Python
