@@ -5,10 +5,8 @@ CONFIG = {
     # =========================
     "symbols": [
         "BTC-USD",
-        "ETH-USD",
-        "SOL-USD",
-        # "SPY",
-        # "NVDA",
+        "SPY",
+        "NXAUUSD",
         # "TSLA",
     ],
 
