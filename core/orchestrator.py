@@ -13,6 +13,7 @@ from agents.smc_agent import smc_signal
 
 from core.config import CONFIG
 from bridge.writer import BridgeWriter
+from bridge.jsonl_bridge import JsonlBridge
 
 from datetime import datetime, timezone
 import logging
@@ -20,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 bridge = BridgeWriter()
+jsonl_bridge = JsonlBridge() if CONFIG["system"].get("pixel_agents") else None
 
 
 def run():

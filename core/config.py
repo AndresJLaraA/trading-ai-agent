@@ -4,9 +4,12 @@ CONFIG = {
     # Universe
     # =========================
     "symbols": [
-        "SPY",
-        "NVDA",
-        "TSLA",
+        "BTC-USD",
+        "ETH-USD",
+        "SOL-USD",
+        # "SPY",
+        # "NVDA",
+        # "TSLA",
     ],
 
     "intervals": [
@@ -127,5 +130,6 @@ CONFIG = {
         # future:
         "paper_trading": True,
         "save_trade_journal": False,
+        "pixel_agents": True,
     },
 }
